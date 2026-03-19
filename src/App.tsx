@@ -372,31 +372,23 @@ const AS_DATA = [
 
 export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedModel, setSelectedModel] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [toastMessage, setToastMessage] = useState("");
-  const [isExpertMode, setIsExpertMode] = useState(false);
 
   const categories = ["All", ...new Set(AS_DATA.map(item => item.category))];
-  const models = ["All", "L8050", "L18050"];
 
   const filteredData = useMemo(() => {
     return AS_DATA.filter(item => {
       const matchesSearch = item.symptom.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            item.cause.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (isExpertMode ? item.expertTip : item.customerTip).toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesModel = selectedModel === "All" || item.model.includes(selectedModel);
+                           item.expertTip.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-      return matchesSearch && matchesModel && matchesCategory;
+      return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedModel, selectedCategory, isExpertMode]);
+  }, [searchTerm, selectedCategory]);
 
   const handleShareItem = (item: typeof AS_DATA[0]) => {
-    const mode = isExpertMode ? "[전문가용]" : "[고객용]";
-    const check = isExpertMode ? item.expertCheck : item.customerCheck;
-    const tip = isExpertMode ? item.expertTip : item.customerTip;
-    
-    const textToShare = `${mode} EPSON ${item.model.join('/')} A/S 가이드\n⚠️ 증상: ${item.symptom}\n🔍 원인: ${item.cause}\n🛠️ 조치: ${check}\n💡 팁: ${tip}`;
+    const textToShare = `[전문가용] EPSON ${item.model.join('/')} A/S 가이드\n⚠️ 증상: ${item.symptom}\n🔍 원인: ${item.cause}\n🛠️ 조치: ${item.expertCheck}\n💡 팁: ${item.expertTip}`;
     
     const textArea = document.createElement("textarea");
     textArea.value = textToShare;
@@ -414,14 +406,20 @@ export default function App() {
 
   const handleCopyLink = () => {
     const url = window.location.href;
+    const isDev = url.includes('ais-dev-'); // 개발용 URL인지 확인
+    
     const textArea = document.createElement("textarea");
     textArea.value = url;
     document.body.appendChild(textArea);
     textArea.select();
     try {
       document.execCommand('copy');
-      setToastMessage("앱 링크가 복사되었습니다! 팀원에게 공유하세요.");
-      setTimeout(() => setToastMessage(""), 3000);
+      if (isDev) {
+        setToastMessage("⚠️ 주의: 개발용 링크입니다. 팀원 공유는 상단 'Share' 버튼을 이용하세요!");
+      } else {
+        setToastMessage("앱 링크가 복사되었습니다! 팀원에게 공유하세요.");
+      }
+      setTimeout(() => setToastMessage(""), 4000);
     } catch (err) {
       console.error('복사 실패', err);
     }
@@ -460,28 +458,6 @@ export default function App() {
             </h1>
           </div>
           <p className="text-slate-500 font-medium">L18050 / L8050 고장 진단 및 수리 가이드</p>
-          
-          {/* View Mode Toggle */}
-          <div className="mt-6 flex justify-center gap-2 print:hidden">
-            <button
-              onClick={() => setIsExpertMode(false)}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all ${
-                !isExpertMode ? 'bg-white text-blue-600 shadow-md border-2 border-blue-600' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              고객용 모드
-            </button>
-            <button
-              onClick={() => setIsExpertMode(true)}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all ${
-                isExpertMode ? 'bg-slate-800 text-white shadow-md border-2 border-slate-800' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              전문가/팀원용
-            </button>
-          </div>
         </motion.header>
 
         {/* Controls */}
@@ -501,35 +477,17 @@ export default function App() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {isExpertMode && (
-              <button 
-                onClick={handleCopyLink}
-                className="px-4 py-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2 font-bold text-sm"
-                title="앱 링크 복사"
-              >
-                <Share2 className="w-5 h-5" />
-                <span className="hidden sm:inline">팀원 공유</span>
-              </button>
-            )}
+            <button 
+              onClick={handleCopyLink}
+              className="px-4 py-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2 font-bold text-sm"
+              title="앱 링크 복사"
+            >
+              <Share2 className="w-5 h-5" />
+              <span className="hidden sm:inline">팀원 공유</span>
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[150px]">
-              <label className="text-xs font-semibold uppercase text-slate-400 mb-1 block">모델</label>
-              <div className="flex gap-2">
-                {models.map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setSelectedModel(m)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedModel === m ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
             <div className="flex-1 min-w-[150px]">
               <label className="text-xs font-semibold uppercase text-slate-400 mb-1 block">카테고리</label>
               <select
@@ -555,16 +513,12 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-md transition-shadow print:break-inside-avoid print:shadow-none print:border-slate-300 print:mb-4 ${
-                    isExpertMode ? 'border-slate-800/20' : 'border-slate-200'
-                  }`}
+                  className="bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-md transition-shadow print:break-inside-avoid print:shadow-none print:border-slate-300 print:mb-4 border-slate-800/20"
                 >
                   <div className="p-5">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex gap-2 items-center flex-wrap">
-                        <span className={`px-2 py-1 text-xs font-bold rounded ${
-                          isExpertMode ? 'bg-slate-800 text-white' : 'bg-blue-100 text-blue-700'
-                        }`}>
+                        <span className="px-2 py-1 text-xs font-bold rounded bg-slate-800 text-white">
                           {item.category}
                         </span>
                         {item.model.map(m => (
@@ -573,25 +527,23 @@ export default function App() {
                           </span>
                         ))}
                       </div>
-                      {isExpertMode && (
-                        <div className="flex flex-col items-end shrink-0">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase mb-1">부품 교체</span>
-                          {item.replacement === "O" ? (
-                            <div className="flex items-center gap-1 text-red-500 font-bold text-sm">
-                              <CheckCircle2 className="w-4 h-4" /> 필요
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-green-500 font-bold text-sm">
-                              <XCircle className="w-4 h-4" /> 불필요
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase mb-1">부품 교체</span>
+                        {item.replacement === "O" ? (
+                          <div className="flex items-center gap-1 text-red-500 font-bold text-sm">
+                            <CheckCircle2 className="w-4 h-4" /> 필요
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-green-500 font-bold text-sm">
+                            <XCircle className="w-4 h-4" /> 불필요
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-start gap-4 mb-3">
                       <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <AlertTriangle className={`w-5 h-5 shrink-0 ${isExpertMode ? 'text-slate-800' : 'text-amber-500'}`} />
+                        <AlertTriangle className="w-5 h-5 shrink-0 text-slate-800" />
                         {item.symptom}
                       </h3>
                       
@@ -611,29 +563,25 @@ export default function App() {
                         </h4>
                         <p className="text-slate-700 text-sm leading-relaxed">{item.cause}</p>
                       </div>
-                      <div className={`${isExpertMode ? 'bg-slate-800/5 border-slate-800/10' : 'bg-blue-50 border-blue-100'} p-4 rounded-xl border`}>
-                        <h4 className={`text-sm font-bold flex items-center gap-1 mb-2 ${isExpertMode ? 'text-slate-800' : 'text-blue-600'}`}>
-                          <Wrench className="w-4 h-4" /> {isExpertMode ? '전문가 조치사항' : '간편 해결 방법'}
+                      <div className="bg-slate-800/5 border-slate-800/10 p-4 rounded-xl border">
+                        <h4 className="text-sm font-bold flex items-center gap-1 mb-2 text-slate-800">
+                          <Wrench className="w-4 h-4" /> 전문가 조치사항
                         </h4>
                         <p className="text-slate-700 text-sm font-medium leading-relaxed">
-                          {isExpertMode ? item.expertCheck : item.customerCheck}
+                          {item.expertCheck}
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3">
-                      {isExpertMode && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-                          <Settings className="w-4 h-4 text-slate-400" />
-                          대상 부품: <span className="font-semibold text-slate-800">{item.part}</span>
-                        </div>
-                      )}
-                      <div className={`text-sm px-4 py-3 rounded-xl flex items-start gap-2 flex-1 min-w-[250px] border ${
-                        isExpertMode ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-amber-50 text-amber-800 border-amber-100'
-                      }`}>
-                        <RefreshCw className={`w-4 h-4 mt-0.5 shrink-0 ${isExpertMode ? 'text-slate-500' : 'text-amber-600'}`} />
+                      <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        대상 부품: <span className="font-semibold text-slate-800">{item.part}</span>
+                      </div>
+                      <div className="text-sm px-4 py-3 rounded-xl flex items-start gap-2 flex-1 min-w-[250px] border bg-slate-100 text-slate-700 border-slate-200">
+                        <RefreshCw className="w-4 h-4 mt-0.5 shrink-0 text-slate-500" />
                         <span className="leading-relaxed">
-                          <strong>{isExpertMode ? '기술 팁:' : '도움말:'}</strong> {isExpertMode ? item.expertTip : item.customerTip}
+                          <strong>기술 팁:</strong> {item.expertTip}
                         </span>
                       </div>
                     </div>
@@ -666,7 +614,6 @@ export default function App() {
           <div className="grid md:grid-cols-2 gap-6">
             <ul className="text-sm text-slate-300 print:text-slate-700 space-y-3 list-disc ml-5 leading-relaxed">
               <li><strong>주 2~3회 필수 인쇄:</strong> 전사 잉크는 입자가 커서 쉽게 굳습니다. 최소 2~3일에 한 번은 노즐 점검이나 인쇄를 수행하세요.</li>
-              <li><strong>잉크 탱크 관리:</strong> 일주일에 한 번 잉크 탱크를 가볍게 흔들어 잉크 침전을 방지해 주세요.</li>
               <li><strong>최적 환경 유지:</strong> 온도 15~25℃, 습도 40~60%의 안정적인 환경에서 보관 및 사용하세요.</li>
               <li><strong>전원 관리:</strong> 반드시 프린터 본체의 전원 버튼으로 끄세요. 그래야 헤드가 안전하게 보호 구역(Cap)으로 이동합니다.</li>
             </ul>
